@@ -1,30 +1,63 @@
-﻿using System;
+﻿/*
+*   Author:  Shaun Christensen
+*   Course:  CS 4150 - Algorithms
+*   Created: 2016.01.18
+*   Edited:  2016.01.18
+*   Project: A1
+*   Summary: Using the programming language of your choice, determine the average amount of time it takes to look up a key in a randomly-generated balanced binary search tree, as a function of the size of the tree. You need only deal with the case in which the key is in the tree.
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Timers;
 
 namespace A1
 {
     class Program
     {
+        // fields
+
+        static bool boolStopwatch;
+        static bool boolTimer;
+
+        static double doubleContainsElapsedTime;
+        static double doubleContainsElapsedTimeAverage;
+        static double doubleControlElapsedTime;
+        static double doubleControlElapsedTimeAverage;
+        static double doubleSearchElapsedTimeAverage;
+
+        static int intCount;
+        static int intRandom;
+
+        const int intLower = 10;
+        const int intUpper = 20;
+
+        static long longContainsCount;
+        static long longContainsElapsedTicks;
+        static long longControlCount;
+        static long longControlElapsedTicks;
+        static long longCount;
+
+        static List<int> listInt;
+        static SortedSet<int> sortedSetInt;
+
+        static Random random;
+        static Stopwatch stopwatch;
+        static Timer timer;
+
+        // methods
+
         static void Main(string[] args)
         {
-            double doubleElapsedContains;
-            double doubleElapsedForEach;
+            random = new Random();
 
-            int intCount;
-            int intNumber;
+            stopwatch = new Stopwatch();
 
-            const int intLower = 10;
-            const int intUpper = 20;
+            timer = new Timer(1000);
+            timer.Elapsed += timerElapsed;
 
-            List<int> listInt;
-            SortedSet<int> sortedSetInt;
-
-            Random random = new Random();
-            Stopwatch stopwatch = new Stopwatch();
+            Console.Out.WriteLine("Stopwatch Frequency\t" + Stopwatch.Frequency);
 
             for (int i = intLower; i <= intUpper; i++)
             {
@@ -38,121 +71,103 @@ namespace A1
                 // populate the sorted set and list with random integers
                 while (sortedSetInt.Count < intCount)
                 {
-                    intNumber = random.Next();
+                    intRandom = random.Next();
 
-                    if (sortedSetInt.Add(intNumber))
+                    // if the integer is added to the sorted set then add it to the list
+                    if (sortedSetInt.Add(intRandom))
                     {
-                        listInt.Add(intNumber);
+                        listInt.Add(intRandom);
                     }
                 }
 
-                // measure the time required to execute the binary tree search
-                stopwatch.Start();
+                // include the binary tree search when measuring execution time
+                time(true);
 
-                foreach (int j in listInt)
-                {
-                    sortedSetInt.Contains(j);
-                }
-
-                stopwatch.Stop();
-
-                doubleElapsedContains = ((double)stopwatch.ElapsedTicks / Stopwatch.Frequency) * 1000;
+                // store data for reporting
+                longContainsCount = longCount;
+                longContainsElapsedTicks = stopwatch.ElapsedTicks;
+                doubleContainsElapsedTime = (double)longContainsElapsedTicks / Stopwatch.Frequency;
+                doubleContainsElapsedTimeAverage = doubleContainsElapsedTime / longContainsCount;
 
                 stopwatch.Reset();
 
-                // measure the time required to execute the foreach loop
-                stopwatch.Start();
+                // exclude the binary tree search when measuring execution time
+                time(false);
 
-                foreach (int j in listInt)
-                {
-                }
-
-                stopwatch.Stop();
-
-                doubleElapsedForEach = ((double)stopwatch.ElapsedTicks / Stopwatch.Frequency) * 1000;
+                // store data for reporting
+                longControlCount = longCount;
+                longControlElapsedTicks = stopwatch.ElapsedTicks;
+                doubleControlElapsedTime = (double)longControlElapsedTicks / Stopwatch.Frequency;
+                doubleControlElapsedTimeAverage = doubleControlElapsedTime / longControlCount;
+                doubleSearchElapsedTimeAverage = doubleContainsElapsedTimeAverage - doubleControlElapsedTimeAverage;
 
                 stopwatch.Reset();
 
-                Console.Out.WriteLine("\nTree Count: " + intCount);
-                Console.Out.WriteLine("Total Time: " + doubleElapsedContains);
-                Console.Out.WriteLine("Loop Time: " + doubleElapsedForEach);
-                Console.Out.WriteLine("Search Time: " + (doubleElapsedContains - doubleElapsedForEach));
-                Console.Out.WriteLine("Average Search Time: " + (doubleElapsedContains - doubleElapsedForEach) / intCount);
-
-                /*
-                  // Construct a sorted array
-            int[] data = new int[size];
-            for (int i = 0; i < size; i++)
-            {
-                data[i] = i;
+                // report data
+                Console.Out.WriteLine("\nCount\t" + intCount);
+                Console.Out.WriteLine("Contains Count\t" + longContainsCount);
+                Console.Out.WriteLine("Contains Elapsed Ticks\t" + longContainsElapsedTicks);
+                Console.Out.WriteLine("Contains Elapsed Time\t" + doubleContainsElapsedTime.ToString("F10"));
+                Console.Out.WriteLine("Contains Elapsed Time Average\t" + doubleContainsElapsedTimeAverage.ToString("F10"));
+                Console.Out.WriteLine("Control Count\t" + longControlCount);
+                Console.Out.WriteLine("Control Elapsed Ticks\t" + longControlElapsedTicks);
+                Console.Out.WriteLine("Control Elapsed Time\t" + doubleControlElapsedTime.ToString("F10"));
+                Console.Out.WriteLine("Control Elapsed Time Average\t" + doubleControlElapsedTimeAverage.ToString("F10"));
+                Console.Out.WriteLine("Search Elapsed Time Average\t" + doubleSearchElapsedTimeAverage.ToString("F10"));
             }
+        }
 
-            // Create a stopwatch
-            Stopwatch sw = new Stopwatch();
+        /// <summary>
+        /// Time the binary tree search.
+        /// </summary>
+        /// <param name="b">Whether to search the binary tree.</param>
+        static void time(bool b)
+        {
+            boolTimer = true;
+            longCount = 0;
 
-            // Keep increasing the number of repetitions until one second elapses.
-            double elapsed = 0;
-            long repetitions = 1;
-            do
+            timer.Start();
+
+            while (boolTimer)
             {
-                repetitions *= 2;
-                sw.Restart();
-                for (int i = 0; i < repetitions; i++)
+                foreach (int i in listInt)
                 {
-                    for (int elt = 0; elt < size; elt++)
+                    // if true search the binary tree
+                    if (b)
                     {
-                        BinarySearch(data, elt);
+                        sortedSetInt.Contains(i);
+                    }
+
+                    // if the stopwatch is running increment the search count
+                    if (boolStopwatch)
+                    {
+                        longCount++;
                     }
                 }
-                sw.Stop();
-                elapsed = msecs(sw);
-            } while (elapsed < DURATION);
-            double totalAverage = elapsed / repetitions;
+            }
+        }
 
-            // Create a stopwatch
-            sw = new Stopwatch();
-
-            // Keep increasing the number of repetitions until one second elapses.
-            elapsed = 0;
-            repetitions = 1;
-            do
+        /// <summary>
+        /// Controls the stopwatch and timer.
+        /// </summary>
+        /// <param name="sender">The object invoking the elapsed event handler.</param>
+        /// <param name="e">The elapsed event arguments.</param>
+        static void timerElapsed(object sender, ElapsedEventArgs e)
+        {
+            // if the stopwatch is running then stop the stopwatch and timer
+            if (boolStopwatch)
             {
-                repetitions *= 2;
-                sw.Restart();
-                for (int i = 0; i < repetitions; i++)
-                {
-                    for (int elt = 0; elt < size; elt++)
-                    {
-                        //BinarySearch(data, elt);
-                    }
-                }
-                sw.Stop();
-                elapsed = msecs(sw);
-            } while (elapsed < DURATION);
-            double overheadAverage = elapsed / repetitions;
+                boolStopwatch = boolTimer = false;
 
-            // Display the raw data as a sanity check
-            //Console.WriteLine("Total avg:    " + totalAverage.ToString("G2"));
-            //Console.WriteLine("Overhead avg: " + overheadAverage.ToString("G2"));
+                stopwatch.Stop();
+                timer.Stop();
+            }
+            // otherwise start the stopwatch
+            else
+            {
+                boolStopwatch = true;
 
-            // Return the difference, averaged over size
-            return (totalAverage - overheadAverage) / size;
-            */
-
-
-
-
-
-                /*
-                Console.Out.Write("Length " + sortedSetInt.Count + ":");
-
-                for (int j = 0; j < 10; j++)
-                {
-                    Console.Out.Write(" " + listInt[j]);
-                }
-
-                Console.Out.WriteLine();
-                */
+                stopwatch.Start();
             }
         }
     }
